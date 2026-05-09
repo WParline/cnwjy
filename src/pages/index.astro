@@ -4,6 +4,7 @@ import { getCollection } from "astro:content";
 
 const posts = await getCollection("posts");
 posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+const categories = [...new Set(posts.map((p) => p.data.category).filter(Boolean))].sort();
 ---
 
 <BaseLayout title="首页">
@@ -13,10 +14,21 @@ posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
   </section>
 
   <section class="mb-12">
-    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--fg);">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
       文章
     </h2>
+    {categories.length > 0 && (
+      <div class="flex flex-wrap gap-2 mb-6">
+        {categories.map((cat) => (
+          <a
+            href={`/category/${encodeURIComponent(cat)}`}
+            class="px-3 py-1 rounded-full text-sm border transition-colors hover:opacity-80"
+            style="background: var(--card); border-color: var(--border); color: var(--fg);"
+          >{cat}</a>
+        ))}
+      </div>
+    )}
     <div class="grid gap-4">
       {posts.map((post) => (
         <a
@@ -36,9 +48,16 @@ posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
           )}
           <div class="flex-1 py-3 pr-4 min-w-0">
             <h3 class="text-lg font-semibold truncate" style="color: var(--fg);">{post.data.title}</h3>
-            <div class="flex flex-wrap gap-2 mt-1 text-sm opacity-60">
-              <time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString("zh-CN")}</time>
-              {post.data.category && <span>· {post.data.category}</span>}
+            <div class="flex flex-wrap gap-2 mt-1 text-sm">
+              <time datetime={post.data.pubDate.toISOString()} style="color: var(--fg); opacity: 0.6;">{post.data.pubDate.toLocaleDateString("zh-CN")}</time>
+              {post.data.category && <span style="color: var(--fg); opacity: 0.6;">·</span>}
+              {post.data.category && (
+                <span
+                  class="hover:underline"
+                  style="color: var(--accent);"
+                  onclick="event.stopPropagation();window.location.href='/category/${encodeURIComponent(post.data.category)}'"
+                >{post.data.category}</span>
+              )}
             </div>
             {post.data.tags && post.data.tags.length > 0 && (
               <div class="flex flex-wrap gap-1.5 mt-2">

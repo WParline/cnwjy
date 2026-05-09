@@ -1,0 +1,50 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("posts");
+  const cats = [...new Set(posts.map((p) => p.data.category).filter(Boolean))];
+  return cats.map((category) => ({
+    params: { slug: category },
+    props: { category, posts: posts.filter((p) => p.data.category === category) },
+  }));
+}
+
+const { category, posts } = Astro.props;
+posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+---
+
+<BaseLayout title={category}>
+  <h1 class="text-3xl font-bold mb-2">{category}</h1>
+  <p class="opacity-60 mb-8">{posts.length} 篇文章</p>
+
+  <div class="grid gap-4">
+    {posts.map((post) => (
+      <a
+        href={`/posts/${post.slug}`}
+        class="flex gap-4 rounded-lg border overflow-hidden transition-transform hover:-translate-y-0.5"
+        style="background: var(--card); border-color: var(--border);"
+      >
+        {post.data.coverImage && (
+          <div class="w-32 h-28 shrink-0 sm:w-40 sm:h-32">
+            <img src={post.data.coverImage} alt={post.data.title} class="w-full h-full object-cover" loading="lazy" />
+          </div>
+        )}
+        <div class="flex-1 py-3 pr-4 min-w-0">
+          <h2 class="text-lg font-semibold truncate" style="color: var(--fg);">{post.data.title}</h2>
+          <div class="flex flex-wrap gap-2 mt-1 text-sm opacity-60">
+            <time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString("zh-CN")}</time>
+          </div>
+          {post.data.tags && post.data.tags.length > 0 && (
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              {post.data.tags.map((tag) => (
+                <span class="px-2 py-0.5 rounded text-xs" style="background: var(--accent); color: #fff;">{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </a>
+    ))}
+  </div>
+</BaseLayout>
