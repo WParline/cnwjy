@@ -11,10 +11,10 @@ const { title, pubDate, tags, category, coverImage } = post.data;
 ---
 
 <BaseLayout title={title} description={title}>
-  <article class="prose prose-lg max-w-none" style="color: var(--fg);">
+  <article class="prose prose-lg max-w-none">
     <header class="mb-8 not-prose">
-      <h1 class="text-3xl font-bold mb-2">{title}</h1>
-      <div class="flex flex-wrap gap-2 text-sm opacity-70">
+      <h1 class="text-3xl font-bold mb-2" style="color: var(--fg);">{title}</h1>
+      <div class="flex flex-wrap gap-2 text-sm" style="color: var(--fg); opacity: 0.7;">
         <time datetime={pubDate.toISOString()}>{pubDate.toLocaleDateString("zh-CN")}</time>
         {category && <span>· {category}</span>}
       </div>
@@ -24,8 +24,8 @@ const { title, pubDate, tags, category, coverImage } = post.data;
         </div>
       )}
     </header>
-    <article class="prose-headings:text-inherit prose-a:text-inherit prose-img:rounded-lg">
+    <div class="prose-img:rounded-lg">
       <slot />
-    </article>
+    </div>
   </article>
 </BaseLayout>

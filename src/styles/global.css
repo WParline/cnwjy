@@ -28,3 +28,39 @@ body {
   background-color: var(--accent);
   color: #fff;
 }
+
+.dark .prose {
+  --tw-prose-body: #cbd5e1;
+  --tw-prose-headings: #f1f5f9;
+  --tw-prose-links: #60a5fa;
+  --tw-prose-bold: #f1f5f9;
+  --tw-prose-counters: #94a3b8;
+  --tw-prose-bullets: #94a3b8;
+  --tw-prose-hr: #334155;
+  --tw-prose-quotes: #cbd5e1;
+  --tw-prose-quote-borders: #475569;
+  --tw-prose-captions: #94a3b8;
+  --tw-prose-code: #f1f5f9;
+  --tw-prose-pre-code: #e2e8f0;
+  --tw-prose-pre-bg: #1e293b;
+  --tw-prose-th-borders: #475569;
+  --tw-prose-td-borders: #334155;
+}
+
+.dark .prose a {
+  color: var(--tw-prose-links);
+}
+
+.dark .prose code {
+  background-color: #1e293b;
+  padding: 0.15em 0.3em;
+  border-radius: 0.25rem;
+}
+
+.dark .prose pre {
+  border: 1px solid #334155;
+}
+
+.dark .prose blockquote {
+  font-style: italic;
+}
