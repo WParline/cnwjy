@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as tf from "@tensorflow/tfjs";
-import { Canvas } from "fabric";
+import { Canvas as FabricCanvas } from "fabric";
 
 type HistoryItem = {
   image: string;
@@ -11,77 +11,99 @@ type HistoryItem = {
 
 export default function DigitRecognizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<Canvas | null>(null);
+  const fabricRef = useRef<FabricCanvas | null>(null);
   const modelRef = useRef<tf.LayersModel | null>(null);
   const [result, setResult] = useState<{ digit: number; confidence: number } | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [accepted, setAccepted] = useState(0);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     async function init() {
-      const model = await tf.loadLayersModel("/models/model.json");
-      modelRef.current = model;
-      setLoading(false);
+      try {
+        const model = await tf.loadLayersModel("/models/model.json");
+        if (!cancelled) {
+          modelRef.current = model;
+          setLoading(false);
+        }
+      } catch (e) {
+        if (!cancelled) setError("模型加载失败: " + (e instanceof Error ? e.message : String(e)));
+      }
     }
     init();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    if (!canvasRef.current || fabricRef.current) return;
-    const canvas = new Canvas(canvasRef.current);
-    canvas.backgroundColor = "#ffffff";
-    canvas.isDrawingMode = true;
-    canvas.freeDrawingBrush!.width = 40;
-    canvas.freeDrawingBrush!.color = "#000000";
+    if (!canvasRef.current || fabricRef.current || loading) return;
+    const canvas = new FabricCanvas(canvasRef.current, {
+      backgroundColor: "#ffffff",
+      isDrawingMode: true,
+      width: 504,
+      height: 504,
+    });
+    canvas.freeDrawingBrush.width = 40;
+    canvas.freeDrawingBrush.color = "#000000";
     canvas.renderAll();
     fabricRef.current = canvas;
-
-    canvas.on("mouse:up", predict);
+    canvas.on("mouse:up", doPredict);
     return () => { canvas.dispose(); };
   }, [loading]);
 
-  const predict = useCallback(async () => {
-    const canvas = fabricRef.current;
+  const doPredict = useCallback(async () => {
     const model = modelRef.current;
-    if (!canvas || !model) return;
+    const htmlCanvas = canvasRef.current;
+    if (!model || !htmlCanvas) return;
 
-    const imgData = canvas.toDataURL({ format: "png" });
-    const img = new Image();
-    img.src = imgData;
-    await img.decode();
-
-    const tensor = tf.browser.fromPixels(img, 1)
-      .resizeNearestNeighbor([28, 28])
-      .toFloat()
-      .sub(255)
-      .abs()
-      .div(255)
-      .expandDims();
-
-    const results = await model.predict(tensor) as tf.Tensor;
-    const data = await results.data();
-    const maxIdx = data.indexOf(Math.max(...Array.from(data)));
-    setResult({ digit: maxIdx, confidence: data[maxIdx] });
-    tensor.dispose();
-    results.dispose();
+    try {
+      const tensor = tf.tidy(() => {
+        let img = tf.browser.fromPixels(htmlCanvas, 1);
+        img = img.resizeNearestNeighbor([28, 28]);
+        const t = tf.fill([28, 28, 1], 255, "int32");
+        img = t.sub(img);
+        return img
+          .expandDims()
+          .toFloat()
+          .div(255.0);
+      });
+      const results = await model.predict(tensor) as tf.Tensor;
+      const data = Array.from(await results.data());
+      let maxIdx = 0;
+      let maxVal = data[0];
+      for (let i = 1; i < data.length; i++) {
+        if (data[i] > maxVal) {
+          maxVal = data[i];
+          maxIdx = i;
+        }
+      }
+      setResult({ digit: maxIdx, confidence: maxVal });
+      tensor.dispose();
+      results.dispose();
+    } catch (e) {
+      console.error("Prediction error:", e);
+    }
   }, []);
 
   const clearCanvas = useCallback(() => {
-    fabricRef.current?.clear();
-    if (fabricRef.current) { fabricRef.current.backgroundColor = "#ffffff"; }
+    if (!fabricRef.current) return;
+    fabricRef.current.clear();
+    fabricRef.current.backgroundColor = "#ffffff";
+    fabricRef.current.renderAll();
     setResult(null);
   }, []);
 
   const accept = useCallback(() => {
     if (!fabricRef.current || result === null) return;
-    const img = fabricRef.current.toDataURL({ format: "png" });
+    const img = fabricRef.current.toDataURL({ format: "png", multiplier: 1 });
     setHistory((h) => [...h, { image: img, actual: result.digit, predicted: result.digit, correct: true }]);
     setAccepted((a) => a + 1);
     setTotal((t) => t + 1);
     fabricRef.current.clear();
     fabricRef.current.backgroundColor = "#ffffff";
+    fabricRef.current.renderAll();
     setResult(null);
   }, [result]);
 
@@ -91,11 +113,12 @@ export default function DigitRecognizer() {
     if (input === null) return;
     const actual = parseInt(input, 10);
     if (isNaN(actual) || actual < 0 || actual > 9) return;
-    const img = fabricRef.current.toDataURL({ format: "png" });
+    const img = fabricRef.current.toDataURL({ format: "png", multiplier: 1 });
     setHistory((h) => [...h, { image: img, actual, predicted: result.digit, correct: false }]);
     setTotal((t) => t + 1);
     fabricRef.current.clear();
     fabricRef.current.backgroundColor = "#ffffff";
+    fabricRef.current.renderAll();
     setResult(null);
   }, [result]);
 
@@ -119,6 +142,14 @@ export default function DigitRecognizer() {
 
   const accuracy = total > 0 ? ((accepted / total) * 100).toFixed(1) : "—";
 
+  if (error) {
+    return (
+      <div class="flex items-center justify-center py-20 text-red-500">
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div class="flex items-center justify-center py-20">
@@ -136,7 +167,8 @@ export default function DigitRecognizer() {
         boxShadow: "5px 16px 23px 5px rgba(197,199,173,0.5)",
       }}>
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ marginBottom: 8, fontSize: 20 }}>在画布上书写数字</h2>
+          <h2 style={{ marginBottom: 8, fontSize: 20 }}>!欢迎来到德莱联盟!</h2>
+          <p style={{ fontSize: 14, marginBottom: 12, opacity: 0.7 }}>把数字写在正中央准确率更高哦~</p>
           <canvas
             ref={canvasRef}
             width={504}
@@ -161,6 +193,8 @@ export default function DigitRecognizer() {
                 fontSize: 16,
                 cursor: "pointer",
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgb(172, 198, 223)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgb(116, 180, 245)"; }}
             >
               清空
             </button>
@@ -279,5 +313,3 @@ export default function DigitRecognizer() {
     </div>
   );
 }
-
-
