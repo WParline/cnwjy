@@ -1,4 +1,6 @@
 ---
+import "../styles/global.css";
+
 export interface Props {
   title: string;
   description?: string;
@@ -17,7 +19,6 @@ const { title, description, coverImage } = Astro.props;
     {description && <meta name="description" content={description} />}
     {coverImage && <meta property="og:image" content={coverImage} />}
     <link rel="icon" type="image/jpeg" href="/favicon/favicon.jpg" />
-    <link rel="stylesheet" href="/src/styles/global.css" />
     <script is:inline>
       if (localStorage.getItem("theme") === "dark" || (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
         document.documentElement.classList.add("dark");
@@ -63,6 +64,26 @@ const { title, description, coverImage } = Astro.props;
           }
           localStorage.setItem("theme", dark ? "dark" : "light");
         });
+      }
+    </script>
+    <button id="back-to-top" aria-label="回到顶部" style="
+      position: fixed; bottom: 32px; right: 32px; z-index: 50;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--accent); color: #fff; border: none;
+      cursor: pointer; display: none; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: opacity 0.3s;
+    ">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+      </svg>
+    </button>
+    <script is:inline>
+      const backBtn = document.getElementById("back-to-top");
+      if (backBtn) {
+        window.addEventListener("scroll", () => {
+          backBtn.style.display = window.scrollY > 300 ? "flex" : "none";
+        });
+        backBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
       }
     </script>
   </body>
