@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as tf from "@tensorflow/tfjs";
-import { Canvas as FabricCanvas } from "fabric";
+import JSZip from "jszip";
 
 type HistoryItem = {
   image: string;
@@ -11,9 +11,13 @@ type HistoryItem = {
 
 export default function DigitRecognizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<FabricCanvas | null>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const modelRef = useRef<tf.LayersModel | null>(null);
-  const [result, setResult] = useState<{ digit: number; confidence: number } | null>(null);
+  const drawingRef = useRef(false);
+  const hasDrawnRef = useRef(false);
+  const lastRef = useRef<{ x: number; y: number } | null>(null);
+
+  const [result, setResult] = useState<{ digit: number; confidence: number; snapshot: string } | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [accepted, setAccepted] = useState(0);
   const [total, setTotal] = useState(0);
@@ -38,29 +42,36 @@ export default function DigitRecognizer() {
   }, []);
 
   useEffect(() => {
-    if (!canvasRef.current || fabricRef.current || loading) return;
-    const canvas = new FabricCanvas(canvasRef.current, {
-      backgroundColor: "#ffffff",
-      isDrawingMode: true,
-      width: 504,
-      height: 504,
-    });
-    canvas.freeDrawingBrush.width = 40;
-    canvas.freeDrawingBrush.color = "#000000";
-    canvas.renderAll();
-    fabricRef.current = canvas;
-    canvas.on("mouse:up", doPredict);
-    return () => { canvas.dispose(); };
+    const canvas = canvasRef.current;
+    if (!canvas || loading) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, 504, 504);
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 28;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctxRef.current = ctx;
   }, [loading]);
+
+  const getPos = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }, []);
+
+  const takeSnapshot = useCallback((): string => {
+    return canvasRef.current!.toDataURL("image/png");
+  }, []);
 
   const doPredict = useCallback(async () => {
     const model = modelRef.current;
-    const htmlCanvas = canvasRef.current;
-    if (!model || !htmlCanvas) return;
+    const canvas = canvasRef.current;
+    if (!model || !canvas) return;
 
     try {
       const tensor = tf.tidy(() => {
-        let img = tf.browser.fromPixels(htmlCanvas, 1);
+        let img = tf.browser.fromPixels(canvas, 1);
         img = img.resizeNearestNeighbor([28, 28]);
         const t = tf.fill([28, 28, 1], 255, "int32");
         img = t.sub(img);
@@ -69,8 +80,8 @@ export default function DigitRecognizer() {
           .toFloat()
           .div(255.0);
       });
-      const results = await model.predict(tensor) as tf.Tensor;
-      const data = Array.from(await results.data());
+      const out = model.predict(tensor) as tf.Tensor;
+      const data = Array.from(await out.data());
       let maxIdx = 0;
       let maxVal = data[0];
       for (let i = 1; i < data.length; i++) {
@@ -79,66 +90,111 @@ export default function DigitRecognizer() {
           maxIdx = i;
         }
       }
-      setResult({ digit: maxIdx, confidence: maxVal });
+      const snapshot = takeSnapshot();
+      setResult({ digit: maxIdx, confidence: maxVal, snapshot });
       tensor.dispose();
-      results.dispose();
+      out.dispose();
     } catch (e) {
       console.error("Prediction error:", e);
     }
-  }, []);
+  }, [takeSnapshot]);
+
+  const onMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    drawingRef.current = true;
+    lastRef.current = getPos(e);
+  }, [getPos]);
+
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!drawingRef.current || !ctxRef.current) return;
+    const pos = getPos(e);
+    hasDrawnRef.current = true;
+    const ctx = ctxRef.current;
+    ctx.beginPath();
+    ctx.moveTo(lastRef.current!.x, lastRef.current!.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    lastRef.current = pos;
+  }, [getPos]);
+
+  const onMouseUp = useCallback(() => {
+    drawingRef.current = false;
+    lastRef.current = null;
+    if (hasDrawnRef.current) {
+      hasDrawnRef.current = false;
+      doPredict();
+    }
+  }, [doPredict]);
 
   const clearCanvas = useCallback(() => {
-    if (!fabricRef.current) return;
-    fabricRef.current.clear();
-    fabricRef.current.backgroundColor = "#ffffff";
-    fabricRef.current.renderAll();
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, 504, 504);
     setResult(null);
   }, []);
 
   const accept = useCallback(() => {
-    if (!fabricRef.current || result === null) return;
-    const img = fabricRef.current.toDataURL({ format: "png", multiplier: 1 });
-    setHistory((h) => [...h, { image: img, actual: result.digit, predicted: result.digit, correct: true }]);
+    if (!result) return;
+    setHistory((h) => [
+      ...h,
+      { image: result.snapshot, actual: result.digit, predicted: result.digit, correct: true },
+    ]);
     setAccepted((a) => a + 1);
     setTotal((t) => t + 1);
-    fabricRef.current.clear();
-    fabricRef.current.backgroundColor = "#ffffff";
-    fabricRef.current.renderAll();
-    setResult(null);
-  }, [result]);
+    clearCanvas();
+  }, [result, clearCanvas]);
 
   const reject = useCallback(() => {
-    if (!fabricRef.current || result === null) return;
+    if (!result) return;
     const input = prompt("请输入正确的数字（0-9）：");
     if (input === null) return;
     const actual = parseInt(input, 10);
     if (isNaN(actual) || actual < 0 || actual > 9) return;
-    const img = fabricRef.current.toDataURL({ format: "png", multiplier: 1 });
-    setHistory((h) => [...h, { image: img, actual, predicted: result.digit, correct: false }]);
+    setHistory((h) => [
+      ...h,
+      { image: result.snapshot, actual, predicted: result.digit, correct: false },
+    ]);
     setTotal((t) => t + 1);
-    fabricRef.current.clear();
-    fabricRef.current.backgroundColor = "#ffffff";
-    fabricRef.current.renderAll();
-    setResult(null);
-  }, [result]);
+    clearCanvas();
+  }, [result, clearCanvas]);
+
+  const stamp = () => {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  };
+
+  const downloadAsZip = useCallback((items: HistoryItem[], label: string) => {
+    if (items.length === 0) return;
+    const zip = new JSZip();
+    items.forEach((item, i) => {
+      zip.file(
+        `记录${i + 1}-实际${item.actual}-预测${item.predicted}.png`,
+        item.image.split(";base64,")[1],
+        { base64: true }
+      );
+    });
+    const filename = `${stamp()}_${label}.zip`;
+    zip.generateAsync({ type: "blob" }).then((content) => {
+      const a = document.createElement("a");
+      a.download = filename;
+      a.href = URL.createObjectURL(content);
+      a.style.display = "none";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  }, []);
 
   const downloadAll = useCallback(() => {
-    history.forEach((item, i) => {
-      const a = document.createElement("a");
-      a.href = item.image;
-      a.download = `记录${i + 1}-实际${item.actual}-预测${item.predicted}.png`;
-      a.click();
-    });
-  }, [history]);
+    downloadAsZip(history, "手写数字识别记录");
+  }, [history, downloadAsZip]);
 
   const downloadWrong = useCallback(() => {
-    history.filter((h) => !h.correct).forEach((item, i) => {
-      const a = document.createElement("a");
-      a.href = item.image;
-      a.download = `错误${i + 1}-实际${item.actual}-预测${item.predicted}.png`;
-      a.click();
-    });
-  }, [history]);
+    downloadAsZip(
+      history.filter((h) => !h.correct),
+      "手写数字识别错误"
+    );
+  }, [history, downloadAsZip]);
 
   const accuracy = total > 0 ? ((accepted / total) * 100).toFixed(1) : "—";
 
@@ -177,8 +233,13 @@ export default function DigitRecognizer() {
               border: "1px solid #0c0c0c",
               borderRadius: 8,
               maxWidth: "100%",
+              touchAction: "none",
               cursor: "crosshair",
             }}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp}
           />
           <div style={{ marginTop: 12 }}>
             <button
@@ -193,8 +254,6 @@ export default function DigitRecognizer() {
                 fontSize: 16,
                 cursor: "pointer",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgb(172, 198, 223)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgb(116, 180, 245)"; }}
             >
               清空
             </button>
@@ -207,32 +266,32 @@ export default function DigitRecognizer() {
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button
               onClick={accept}
-              disabled={result === null}
+              disabled={!result}
               style={{
                 flex: 1,
                 padding: "10px 0",
-                background: result === null ? "#ccc" : "rgb(116, 180, 245)",
+                background: !result ? "#ccc" : "rgb(116, 180, 245)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 6,
                 fontSize: 16,
-                cursor: result === null ? "not-allowed" : "pointer",
+                cursor: !result ? "not-allowed" : "pointer",
               }}
             >
               识别成功
             </button>
             <button
               onClick={reject}
-              disabled={result === null}
+              disabled={!result}
               style={{
                 flex: 1,
                 padding: "10px 0",
-                background: result === null ? "#ccc" : "rgb(244, 109, 67)",
+                background: !result ? "#ccc" : "rgb(244, 109, 67)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 6,
                 fontSize: 16,
-                cursor: result === null ? "not-allowed" : "pointer",
+                cursor: !result ? "not-allowed" : "pointer",
               }}
             >
               识别失败
@@ -291,7 +350,7 @@ export default function DigitRecognizer() {
               >
                 <img
                   src={item.image}
-                  alt={`预测${item.predicted}`}
+                  alt={`实际${item.actual} 预测${item.predicted}`}
                   style={{ width: "100%", display: "block" }}
                 />
                 <div

@@ -13,7 +13,7 @@ const { title, description, coverImage } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} | 柯南简</title>
+    <title>{title} | 抛物线</title>
     {description && <meta name="description" content={description} />}
     {coverImage && <meta property="og:image" content={coverImage} />}
     <link rel="icon" type="image/jpeg" href="/favicon/favicon.jpg" />
@@ -27,7 +27,7 @@ const { title, description, coverImage } = Astro.props;
   <body class="min-h-screen flex flex-col">
     <header class="border-b" style="border-color: var(--border);">
       <nav class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-        <a href="/" class="text-xl font-bold hover:opacity-80" style="color: var(--fg);">柯南简</a>
+        <a href="/" class="text-xl font-bold hover:opacity-80" style="color: var(--fg);">抛物线</a>
         <div class="flex items-center gap-6">
           <a href="/" class="hover:underline" style="color: var(--fg);">文章</a>
           <a href="/tools" class="hover:underline" style="color: var(--fg);">工具</a>
@@ -43,7 +43,7 @@ const { title, description, coverImage } = Astro.props;
       <slot />
     </main>
     <footer class="border-t py-6 text-center text-sm" style="border-color: var(--border); color: var(--fg); opacity: 0.6;">
-      <p>&copy; {new Date().getFullYear()} 柯南简 · Built with Astro</p>
+      <p>&copy; {new Date().getFullYear()} 抛物线 · Built with Astro</p>
     </footer>
     <script is:inline>
       const toggle = document.getElementById("theme-toggle");
