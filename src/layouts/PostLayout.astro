@@ -1,0 +1,31 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import type { CollectionEntry } from "astro:content";
+
+export interface Props {
+  post: CollectionEntry<"posts">;
+}
+
+const { post } = Astro.props;
+const { title, pubDate, tags, category, coverImage } = post.data;
+---
+
+<BaseLayout title={title} description={title}>
+  <article class="prose prose-lg max-w-none" style="color: var(--fg);">
+    <header class="mb-8 not-prose">
+      <h1 class="text-3xl font-bold mb-2">{title}</h1>
+      <div class="flex flex-wrap gap-2 text-sm opacity-70">
+        <time datetime={pubDate.toISOString()}>{pubDate.toLocaleDateString("zh-CN")}</time>
+        {category && <span>· {category}</span>}
+      </div>
+      {tags && tags.length > 0 && (
+        <div class="flex flex-wrap gap-2 mt-2">
+          {tags.map((tag) => <span class="px-2 py-0.5 rounded text-sm" style="background: var(--accent); color: #fff;">{tag}</span>)}
+        </div>
+      )}
+    </header>
+    <article class="prose-headings:text-inherit prose-a:text-inherit prose-img:rounded-lg">
+      <slot />
+    </article>
+  </article>
+</BaseLayout>

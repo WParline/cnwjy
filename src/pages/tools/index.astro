@@ -1,0 +1,18 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="工具">
+  <h1 class="text-3xl font-bold mb-6">工具合集</h1>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <a
+      href="/tools/digit-recognition"
+      class="block p-6 rounded-lg border transition-transform hover:-translate-y-0.5"
+      style="background: var(--card); border-color: var(--border);"
+    >
+      <h2 class="text-xl font-semibold" style="color: var(--fg);">手写数字识别</h2>
+      <p class="mt-2 opacity-70">基于 TensorFlow.js 的浏览器端手写数字识别工具。在画布上书写数字，AI 实时识别。</p>
+      <span class="inline-block mt-3 text-sm" style="color: var(--accent);">试试看 →</span>
+    </a>
+  </div>
+</BaseLayout>

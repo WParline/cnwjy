@@ -1,0 +1,74 @@
+{
+    "createdBy": "Redirector v3.5.4",
+    "createdAt": "2022-05-09T17:41:33.740Z",
+    "redirects": [
+        {
+            "description": "跳过知乎安全中心提醒-https",
+            "exampleUrl": "https://link.zhihu.com/?target=https%3A//cnwjy.site",
+            "exampleResult": "https://cnwjy.site",
+            "error": null,
+            "includePattern": "https://link.zhihu.com/?target=*",
+            "excludePattern": "",
+            "patternDesc": "",
+            "redirectUrl": "$1",
+            "patternType": "W",
+            "processMatches": "urlDecode",
+            "disabled": false,
+            "grouped": false,
+            "appliesTo": [
+                "main_frame"
+            ]
+        },
+        {
+            "description": "跳过知乎安全中心提醒-http",
+            "exampleUrl": "https://link.zhihu.com/?target=http%3A//cnwjy.site",
+            "exampleResult": "http://cnwjy.site",
+            "error": null,
+            "includePattern": "https://link.zhihu.com/?target=*",
+            "excludePattern": "",
+            "patternDesc": "",
+            "redirectUrl": "$1",
+            "patternType": "W",
+            "processMatches": "urlDecode",
+            "disabled": false,
+            "grouped": false,
+            "appliesTo": [
+                "main_frame"
+            ]
+        },
+        {
+            "description": "跳过CSDN安全中心提醒-https",
+            "exampleUrl": "https://link.csdn.net/?target=https%3A%2F%2Fcnwjy.site%2F",
+            "exampleResult": "https://cnwjy.site/",
+            "error": null,
+            "includePattern": "https://link.csdn.net/?target=*",
+            "excludePattern": "",
+            "patternDesc": "",
+            "redirectUrl": "$1",
+            "patternType": "W",
+            "processMatches": "urlDecode",
+            "disabled": false,
+            "grouped": false,
+            "appliesTo": [
+                "main_frame"
+            ]
+        },
+        {
+            "description": "跳过CSDN安全中心提醒-http",
+            "exampleUrl": "https://link.csdn.net/?target=http%3A%2F%2Fcnwjy.site%2F",
+            "exampleResult": "http://cnwjy.site/",
+            "error": null,
+            "includePattern": "https://link.csdn.net/?target=*",
+            "excludePattern": "",
+            "patternDesc": "",
+            "redirectUrl": "$1",
+            "patternType": "W",
+            "processMatches": "urlDecode",
+            "disabled": false,
+            "grouped": false,
+            "appliesTo": [
+                "main_frame"
+            ]
+        }
+    ]
+}

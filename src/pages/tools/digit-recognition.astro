@@ -1,0 +1,12 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import DigitRecognizer from "../../components/react/DigitRecognizer.tsx";
+---
+
+<BaseLayout title="手写数字识别">
+  <h1 class="text-3xl font-bold mb-6">手写数字识别</h1>
+  <p class="mb-6 opacity-70">在下方画布上用鼠标书写数字（0-9），AI 将实时识别。</p>
+  <div class="flex justify-center">
+    <DigitRecognizer client:load />
+  </div>
+</BaseLayout>
