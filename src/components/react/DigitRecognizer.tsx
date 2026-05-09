@@ -215,22 +215,22 @@ export default function DigitRecognizer() {
   }
 
   return (
-    <div style={{ maxWidth: 540, margin: "0 auto" }}>
+    <div style={{ maxWidth: 540, margin: "0 auto", color: "var(--fg)" }}>
       <div style={{
-        background: "rgb(245, 247, 227)",
+        background: "var(--card)",
         borderRadius: 12,
         padding: 24,
-        boxShadow: "5px 16px 23px 5px rgba(197,199,173,0.5)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
       }}>
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ marginBottom: 8, fontSize: 20 }}>!欢迎来到德莱联盟!</h2>
-          <p style={{ fontSize: 14, marginBottom: 12, opacity: 0.7 }}>把数字写在正中央准确率更高哦~</p>
+          <h2 style={{ marginBottom: 8, fontSize: 20, color: "var(--fg)" }}>!欢迎来到德莱联盟!</h2>
+          <p style={{ fontSize: 14, marginBottom: 12, color: "var(--fg)", opacity: 0.7 }}>把数字写在正中央准确率更高哦~</p>
           <canvas
             ref={canvasRef}
             width={504}
             height={504}
             style={{
-              border: "1px solid #0c0c0c",
+              border: "1px solid var(--border)",
               borderRadius: 8,
               maxWidth: "100%",
               touchAction: "none",
@@ -258,7 +258,7 @@ export default function DigitRecognizer() {
               清空
             </button>
           </div>
-          <h3 style={{ marginTop: 12, fontSize: 22, minHeight: 32 }}>
+          <h3 style={{ marginTop: 12, fontSize: 22, minHeight: 32, color: "var(--fg)" }}>
             {result
               ? `识别结果为: ${result.digit}  可信度: ${result.confidence.toFixed(3)}`
               : "识别结果为: null"}
@@ -297,7 +297,7 @@ export default function DigitRecognizer() {
               识别失败
             </button>
           </div>
-          <p style={{ marginTop: 8, fontSize: 18 }}>
+          <p style={{ marginTop: 8, fontSize: 18, color: "var(--fg)" }}>
             识别准确率: {accuracy}{total > 0 ? `% (${accepted}/${total})` : ""}
           </p>
         </div>
@@ -305,7 +305,7 @@ export default function DigitRecognizer() {
 
       {history.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h3 style={{ fontSize: 20, marginBottom: 12 }}>识别历史记录</h3>
+          <h3 style={{ fontSize: 20, marginBottom: 12, color: "var(--fg)" }}>识别历史记录</h3>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
             <button
               onClick={downloadAll}
@@ -343,7 +343,7 @@ export default function DigitRecognizer() {
               <div
                 key={i}
                 style={{
-                  border: "1px solid #ddd",
+                  border: "1px solid var(--border)",
                   borderRadius: 8,
                   overflow: "hidden",
                 }}
